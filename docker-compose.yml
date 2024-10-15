@@ -1,0 +1,50 @@
+services:
+    mysql:
+        container_name: mysql
+        image: mysql:latest
+        restart: always
+        environment:
+            MYSQL_DATABASE: help2_backup
+            MYSQL_USER: serveradmin
+            MYSQL_PASSWORD: YanakSoft!2233
+            MYSQL_RANDOM_ROOT_PASSWORD: YanakSoft!2233
+        volumes:
+            - ./help2_backup_v2.sql.gz:/docker-entrypoint-initdb.d/backup.sql.gz
+    wordpress:
+        container_name: wordpress
+        image: wordpress:latest
+        restart: always
+        stdin_open: true
+        tty: true
+        environment:
+            WORDPRESS_DB_HOST: mysql:3306
+            WORDPRESS_DB_USER: serveradmin
+            WORDPRESS_DB_PASSWORD: YanakSoft!2233
+            WORDPRESS_DB_NAME: help2_backup
+        volumes:
+            - ./wordpress:/var/www/html
+    php-fpm:
+        image: php:7.2-fpm
+        volumes:
+            - ./wordpress:/var/www/html
+    nginx:
+        container_name: nginx
+        image: nginx:latest
+        restart: unless-stopped
+        ports:
+            - 80:80
+            - 443:443
+        volumes:
+            - ./nginx/conf:/etc/nginx/conf.d
+            - ./nginx/snippets:/etc/nginx/snippets
+            - ./certbot/conf:/etc/nginx/ssl
+            - ./certbot/data:/var/www/html
+            - ./certbot/certificates/:/etc/letsencrypt/live/help2.yanaksoft.com/
+    certbot:
+        container_name: certbot
+        image: certbot/certbot:latest
+        command: certonly --webroot --webroot-path=/var/www/html --email ruchichki@abv.bg --agree-tos --no-eff-email -d help2.yanaksoft.com -n
+        volumes:
+            - ./certbot/conf:/etc/letsencrypt
+            - ./certbot/logs:/var/log/letsencrypt
+            - ./certbot/data:/var/www/html
